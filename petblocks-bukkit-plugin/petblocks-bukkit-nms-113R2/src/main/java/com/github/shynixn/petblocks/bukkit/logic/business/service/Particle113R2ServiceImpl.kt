@@ -2,9 +2,11 @@
 
 package com.github.shynixn.petblocks.bukkit.logic.business.service
 
+import com.github.shynixn.petblocks.api.PetBlocksApi
 import com.github.shynixn.petblocks.api.business.enumeration.ParticleType
 import com.github.shynixn.petblocks.api.business.service.ConfigurationService
 import com.github.shynixn.petblocks.api.business.service.ItemTypeService
+import com.github.shynixn.petblocks.api.business.service.LoggingService
 import com.github.shynixn.petblocks.api.business.service.ParticleService
 import com.github.shynixn.petblocks.api.persistence.entity.Particle
 import com.github.shynixn.petblocks.core.logic.persistence.entity.ItemEntity
@@ -45,8 +47,15 @@ import java.util.logging.Level
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-class Particle113R2ServiceImpl @Inject constructor(private val configurationService: ConfigurationService, private val itemTypeService: ItemTypeService) :
+class Particle113R2ServiceImpl @Inject constructor(
+    private val configurationService: ConfigurationService,
+    private val itemTypeService: ItemTypeService
+) :
     ParticleService {
+    private val loggingService by lazy {
+        PetBlocksApi.resolve(LoggingService::class.java)
+    }
+
     /**
      * Plays the given [particle] at the given [location] for the given [player] or
      * all players in the world if the config option all alwaysVisible is enabled.
@@ -55,7 +64,10 @@ class Particle113R2ServiceImpl @Inject constructor(private val configurationServ
         require(player is Player) { "Player has to be a BukkitPlayer!" }
         require(location is Location) { "Location has to be a BukkitLocation!" }
 
-        val canOtherPlayersSeeParticles = configurationService.findValue<Boolean>("global-configuration.particles-other-players")
+        loggingService.info("[ParticlePlayer] Play at $location for $player.")
+
+        val canOtherPlayersSeeParticles =
+            configurationService.findValue<Boolean>("global-configuration.particles-other-players")
 
         if (canOtherPlayersSeeParticles) {
             playParticleEffect(location, particle, player.world.players)
@@ -82,12 +94,17 @@ class Particle113R2ServiceImpl @Inject constructor(private val configurationServ
      */
     private fun playParticleEffect(location: Location, particle: Particle, playerList: List<Player>) {
         try {
+            loggingService.info("[ParticlePlayer] Play at $location for many ${playerList.size}.")
+
             if (particle.typeName == "" || particle.typeName.equals("none", true)) {
                 return
             }
 
+            loggingService.info("[ParticlePlayer] Detecting.")
+
             val partType = findParticleType(particle.typeName)
-            val bukkitType = org.bukkit.Particle.values().asSequence().first { p -> p.name.equals(particle.typeName, true) || partType.name == p.name }
+            val bukkitType = org.bukkit.Particle.values().asSequence()
+                .first { p -> p.name.equals(particle.typeName, true) || partType.name == p.name }
             val dataType = bukkitType.dataType
 
             for (player in playerList) {
@@ -103,10 +120,19 @@ class Particle113R2ServiceImpl @Inject constructor(private val configurationServ
                     )
                     org.bukkit.Particle.DustOptions::class.java -> {
                         val dustOptions =
-                            org.bukkit.Particle.DustOptions(org.bukkit.Color.fromRGB(particle.colorRed, particle.colorGreen, particle.colorBlue), 1.0F)
+                            org.bukkit.Particle.DustOptions(
+                                org.bukkit.Color.fromRGB(
+                                    particle.colorRed,
+                                    particle.colorGreen,
+                                    particle.colorBlue
+                                ), 1.0F
+                            )
+                        loggingService.info("[ParticlePlayer] Dust")
                         player.spawnParticle(bukkitType, location, 0, dustOptions)
                     }
                     MaterialData::class.java -> {
+                        loggingService.info("[ParticlePlayer] MaterialData")
+
                         val itemType = itemTypeService.findItemType<Material>(particle.materialName!!)
                         val materialData = MaterialData(itemType, particle.data.toByte())
                         player.spawnParticle(
@@ -121,6 +147,8 @@ class Particle113R2ServiceImpl @Inject constructor(private val configurationServ
                         )
                     }
                     BlockData::class.java -> {
+                        loggingService.info("[ParticlePlayer] BlockData")
+
                         val itemType = itemTypeService.findItemType<Material>(particle.materialName!!)
                         val blockData = Bukkit.createBlockData(itemType)
 
@@ -136,7 +164,9 @@ class Particle113R2ServiceImpl @Inject constructor(private val configurationServ
                         )
                     }
                     ItemStack::class.java -> {
-                        val itemStack = itemTypeService.toItemStack<ItemStack>(ItemEntity(particle.materialName!!, particle.data))
+                        val itemStack =
+                            itemTypeService.toItemStack<ItemStack>(ItemEntity(particle.materialName!!, particle.data))
+                        loggingService.info("[ParticlePlayer] ItemStack")
 
                         player.spawnParticle(
                             bukkitType,
@@ -157,5 +187,7 @@ class Particle113R2ServiceImpl @Inject constructor(private val configurationServ
         } catch (e: Exception) {
             Bukkit.getServer().logger.log(Level.WARNING, "Failed to send particle.", e)
         }
+
+        loggingService.info("[ParticlePlayer] Over")
     }
 }
