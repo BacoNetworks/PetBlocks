@@ -54,6 +54,7 @@ class InventoryListener @Inject constructor(
      */
     @Listener
     fun onPlayerClickInInventoryEvent(event: ClickInventoryEvent, @First(typeFilter = [Player::class]) player: Player) {
+        try{
         if (event.transactions.isEmpty()) {
             return
         }
@@ -76,6 +77,7 @@ class InventoryListener @Inject constructor(
             // SpongeInventory bug if they get manipulated on the same tick as the event.
             guiService.clickInventoryItem(player, slot, currentItemStack)
         }
+        }catch (e: Exception){}
     }
 
     /**

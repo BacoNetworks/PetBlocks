@@ -1,0 +1,13 @@
+.gradle/*
+build/*
+*.class
+*.xml
+.idea/*
+*.info
+petblocks-sponge-plugin/build/*
+petblocks-sponge-api/build/*
+petblocks-bukkit-plugin/build/*
+petblocks-core/build/*
+petblocks-tools/build/*
+petblocks-api/build/*
+petblocks-sponge-plugins/interaction-test/*

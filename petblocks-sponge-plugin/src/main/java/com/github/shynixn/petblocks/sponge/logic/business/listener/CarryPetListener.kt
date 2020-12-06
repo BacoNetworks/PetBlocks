@@ -145,12 +145,13 @@ class CarryPetListener @Inject constructor(private val carryPetService: CarryPet
      */
     @Listener
     fun onInventoryClick(event: ClickInventoryEvent, @First(typeFilter = [Player::class]) player: Player) {
+        try{
         if (!carryPetService.isCarryingPet(player)) {
             return
         }
-
         carryPetService.dropPet(player)
         event.isCancelled = true
+        }catch(e: Exception){}
     }
 
     /**
